@@ -13,6 +13,7 @@ bool hideMenu = false;
 float aimbotTolerance = 0.05;
 int maxTimer = 200;
 
+bool enableAimbot = true;
 bool holdToUseAimbot = false;
 bool headShots = true;
 bool targetClosestToCrosshair = true;
@@ -47,7 +48,7 @@ DWORD WINAPI Thread(LPVOID param)
 			hideMenu = !hideMenu;
 		}
 
-		if (!isCursorInWindow) { aimbot = false; continue; }
+		if (!isCursorInWindow || !enableAimbot) { aimbot = false; continue; }
 		
 		Player** localPlayerPtr = (Player**)(clientDll + localPlayerOffset);
 		if (localPlayerPtr == nullptr) { localPlayer = nullptr; continue; }
@@ -60,7 +61,7 @@ DWORD WINAPI Thread(LPVOID param)
 			if (aimbot) { aimbotTargetPlayer = GetClosestPlayer(); }
 		}
 
-		if ((!holdToUseAimbot || (holdToUseAimbot && GetAsyncKeyState(VK_LSHIFT))) && aimbot && timer > maxTimer)
+		if ((!holdToUseAimbot || (holdToUseAimbot && GetAsyncKeyState(VK_LSHIFT))) && aimbot && timer > maxTimer * localPlayer->zoom)
 		{
 			timer = 0;
 			
@@ -140,14 +141,15 @@ void Draw() // called in DetourPresent()
 		ImGui::PushStyleColor(ImGuiCol_FrameBg, secondaryTeamColor);
 		ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, secondaryTeamColor);
 
-		ImGui::Begin("CS2 Jesso Cheats", nullptr);
+		ImGui::Begin("CS2 Jesso Cheats", nullptr, ImGuiWindowFlags_NoMove);
 		ImGui::SetWindowPos(ImVec2(0, 0));
-		ImGui::SetWindowSize(ImVec2(400, 275), ImGuiCond_Always);
+		ImGui::SetWindowSize(ImVec2(400, 300), ImGuiCond_Always);
 
 		ImGui::Text("Ins - uninject");
 		ImGui::Text("F1 - hide this menu");
 		ImGui::Text("Left Shift - use aimbot");
 
+		ImGui::Checkbox("Enable aimbot", &enableAimbot);
 		ImGui::Checkbox("Hold to use aimbot", &holdToUseAimbot);
 		ImGui::Checkbox("Aim for heads", &headShots);
 		ImGui::Checkbox("Target player closest to crosshair", &targetClosestToCrosshair);
@@ -267,9 +269,13 @@ void PredictPosition(Player* targetPlayer, Vector3& out)
 
 	Vector3 velocity = targetPlayer->velocity - localPlayer->velocity;
 
-	out.x += velocity.x / 35;
-	out.y += velocity.y / 35;
-	out.z += velocity.z / 35;
+	float devisor = 35 * localPlayer->zoom;
+	if (devisor == 0) { return; }
+	if (devisor < 15) { devisor = 15; }
+
+	out.x += velocity.x / devisor;
+	out.y += velocity.y / devisor;
+	out.z += velocity.z / devisor;
 }
 
 Vector2 GetPlayerScreenPos(Player* player)
