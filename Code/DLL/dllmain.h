@@ -1,4 +1,3 @@
-#include <iostream>
 #include <string>
 #include "mathStructs.h"
 #include "memoryTools.h"

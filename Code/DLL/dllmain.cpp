@@ -26,21 +26,10 @@ bool targetSameTeam = false;
 
 DWORD WINAPI Thread(LPVOID param)
 {
-	AllocConsole(); // create console
-	FILE* f;
-	freopen_s(&f, "CONOUT$", "w", stdout);
-	if (f == 0)
-	{
-		FreeLibraryAndExitThread((HMODULE)param, 0);
-		return 0;
-	}
-	
 	clientDll = (uintptr_t)GetModuleHandle(L"client.dll");
 
 	if (clientDll == 0 || !HookPresent()) // hooking directx
 	{
-		fclose(f);
-		FreeConsole();
 		FreeLibraryAndExitThread((HMODULE)param, 0);
 		return 0;
 	}
@@ -98,8 +87,6 @@ DWORD WINAPI Thread(LPVOID param)
 	if (p_device) { p_device->Release(); p_device = NULL; }
 	SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)(oWndProc));
 
-	fclose(f);
-	FreeConsole();
 	FreeLibraryAndExitThread((HMODULE)param, 0);
 	return 0;
 }
