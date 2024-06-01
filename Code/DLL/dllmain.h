@@ -6,6 +6,8 @@
 
 bool IsCursorInWindow();
 
+uintptr_t GetPlayerController(int index);
+
 Player* GetPlayer(int index);
 
 bool IsValidPlayer(Player* player);

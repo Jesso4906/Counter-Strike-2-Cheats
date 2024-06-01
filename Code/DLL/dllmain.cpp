@@ -2,6 +2,8 @@
 
 uintptr_t clientDll = 0;
 
+bool inMatch = false;
+
 Player* localPlayer = nullptr;
 
 int screenHeight = 0;
@@ -20,6 +22,7 @@ bool targetClosestToCrosshair = true;
 float aimbotStrength = 5;
 
 bool esp = false;
+bool showPlayerNames = true;
 bool hideEspInfo = true;
 bool enableCrosshair = true;
 
@@ -41,6 +44,9 @@ DWORD WINAPI Thread(LPVOID param)
 	bool aimbot = false;
 	while (!GetAsyncKeyState(VK_INSERT)) // exit when ins key is pressed
 	{
+		inMatch = *(bool*)(clientDll + inMatchOffset);
+		if (!inMatch) { continue; }
+		
 		timer++;
 
 		if (GetAsyncKeyState(VK_F1) & 1)
@@ -49,19 +55,24 @@ DWORD WINAPI Thread(LPVOID param)
 		}
 
 		if (!isCursorInWindow || !enableAimbot) { aimbot = false; continue; }
-		
+
 		Player** localPlayerPtr = (Player**)(clientDll + localPlayerOffset);
 		if (localPlayerPtr == nullptr) { localPlayer = nullptr; continue; }
 		localPlayer = *localPlayerPtr;
 
-		if ((GetAsyncKeyState(VK_LSHIFT) & 1) && IsValidPlayer(localPlayer))
+		if (!IsValidPlayer(localPlayer)) { continue; }
+
+		if ((GetAsyncKeyState(VK_LSHIFT) & 1))
 		{
 			aimbot = !aimbot;
 
 			if (aimbot) { aimbotTargetPlayer = GetClosestPlayer(); }
 		}
 
-		if ((!holdToUseAimbot || (holdToUseAimbot && GetAsyncKeyState(VK_LSHIFT))) && aimbot && timer > maxTimer * localPlayer->zoom)
+		float zoomModifier = localPlayer->zoom;
+		if (localPlayer->zoom < 0.2) { zoomModifier = 0.1; }
+
+		if ((!holdToUseAimbot || (holdToUseAimbot && GetAsyncKeyState(VK_LSHIFT))) && aimbot && timer > maxTimer * zoomModifier)
 		{
 			timer = 0;
 			
@@ -114,7 +125,7 @@ void Draw() // called in DetourPresent()
 		ImU32 primaryTeamColor;
 		ImU32 secondaryTeamColor;
 
-		int team = IsValidPlayer(localPlayer) ? localPlayer->team : -1;
+		int team = inMatch && IsValidPlayer(localPlayer) ? localPlayer->team : -1;
 		switch (team)
 		{
 		case Terrorist:
@@ -143,7 +154,7 @@ void Draw() // called in DetourPresent()
 
 		ImGui::Begin("CS2 Jesso Cheats", nullptr, ImGuiWindowFlags_NoMove);
 		ImGui::SetWindowPos(ImVec2(0, 0));
-		ImGui::SetWindowSize(ImVec2(400, 300), ImGuiCond_Always);
+		ImGui::SetWindowSize(ImVec2(400, 315), ImGuiCond_Always);
 
 		ImGui::Text("Ins - uninject");
 		ImGui::Text("F1 - hide this menu");
@@ -156,6 +167,7 @@ void Draw() // called in DetourPresent()
 		ImGui::SliderFloat("Aimbot strength", &aimbotStrength, 0.1, 5);
 
 		ImGui::Checkbox("ESP", &esp);
+		ImGui::Checkbox("Show player names", &showPlayerNames);
 		ImGui::Checkbox("Hide ESP info", &hideEspInfo);
 		ImGui::Checkbox("Enable centered crosshair", &enableCrosshair);
 
@@ -168,7 +180,7 @@ void Draw() // called in DetourPresent()
 
 	if(esp)
 	{
-		if (!IsValidPlayer(localPlayer)) { return; }
+		if (!inMatch || !IsValidPlayer(localPlayer)) { return; }
 		
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
@@ -213,24 +225,38 @@ bool IsCursorInWindow()
 	return true;
 }
 
+uintptr_t GetPlayerController(int index) 
+{
+	if (index < 0 || index >= maxPlayerCount) { return 0; }
+
+	uintptr_t* entitySystemPtr = (uintptr_t*)(clientDll + entityListOffset);
+	if (entitySystemPtr == nullptr || (*entitySystemPtr) == 0) { return 0; }
+	uintptr_t entitySystem = *entitySystemPtr;
+
+	uintptr_t* entityListPtr = (uintptr_t*)(entitySystem + 0x10);
+	if (entityListPtr == nullptr || (*entityListPtr) == 0) { return 0; }
+	uintptr_t entityList = *entityListPtr;
+
+	uintptr_t* playerControllerPtr = (uintptr_t*)(entityList + ((0x78 * index) + 0x78));
+	if (playerControllerPtr == nullptr) { return 0; }
+	uintptr_t playerController = *playerControllerPtr;
+
+	return playerController;
+}
+
 Player* GetPlayer(int index)
 {
 	if (index < 0 || index >= maxPlayerCount) { return nullptr; }
 
-	uintptr_t* entitySystemPtr = (uintptr_t*)(clientDll + entityListOffset);
-	if (entitySystemPtr == nullptr || (*entitySystemPtr) == 0) { return nullptr; }
-	uintptr_t entitySystem = *entitySystemPtr;
-
-	uintptr_t* entityListPtr = (uintptr_t*)(entitySystem + 0x10);
-	if (entityListPtr == nullptr || (*entityListPtr) == 0) { return nullptr; }
-	uintptr_t entityList = *entityListPtr;
-
-	uintptr_t* playerControllerPtr = (uintptr_t*)(entityList + ((0x78 * index) + 0x78));
-	if (playerControllerPtr == nullptr || (*playerControllerPtr) == 0) { return nullptr; }
-	uintptr_t playerController = *playerControllerPtr;
+	uintptr_t playerController = GetPlayerController(index);
+	if (playerController == 0) { return nullptr; }
 
 	int pawnHandle = *(int*)(playerController + pawnHandleOffset);
 	if (pawnHandle == 0) { return nullptr; }
+
+	uintptr_t* entitySystemPtr = (uintptr_t*)(clientDll + entityListOffset);
+	if (entitySystemPtr == nullptr || (*entitySystemPtr) == 0) { return 0; }
+	uintptr_t entitySystem = *entitySystemPtr;
 	
 	uintptr_t* listEntityPtr = (uintptr_t*)(entitySystem + (0x8 * ((pawnHandle & 0x7FFF) >> 9) + 0x10));
 	if (listEntityPtr == nullptr || (*listEntityPtr) == 0) { return nullptr; }
@@ -444,14 +470,17 @@ void ESP(ImDrawList* drawList)
 
 		if (!hideEspInfo)
 		{
-			std::string indexStr = "ID: " + std::to_string(i);
-			drawList->AddText(ImVec2(screenPos.x - sizeX, screenPos.y - 35), color, indexStr.c_str());
-
 			std::string healthStr = "Health: " + std::to_string(player->health);
-			drawList->AddText(ImVec2(screenPos.x - sizeX, screenPos.y - 25), color, healthStr.c_str());
+			drawList->AddText(ImVec2(screenPos.x - sizeX, screenPos.y - 35), color, healthStr.c_str());
 
 			std::string distStr = "Distance: " + std::to_string((int)distance);
-			drawList->AddText(ImVec2(screenPos.x - sizeX, screenPos.y - 15), color, distStr.c_str());
+			drawList->AddText(ImVec2(screenPos.x - sizeX, screenPos.y - 25), color, distStr.c_str());
+		}
+
+		if (showPlayerNames) 
+		{
+			const char* playerName = (const char*)(GetPlayerController(i) + playerNameOffset);
+			drawList->AddText(ImVec2(screenPos.x - sizeX, screenPos.y - 15), color, playerName);
 		}
 
 		drawList->AddRect(ImVec2(screenPos.x - sizeX, screenPos.y), ImVec2(screenPos.x + sizeX, screenPos.y + sizeY), color);
