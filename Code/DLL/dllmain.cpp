@@ -12,10 +12,12 @@ bool isCursorInWindow = false;
 
 bool hideMenu = false;
 
-float aimbotTolerance = 0.05;
+float moveViewAnglesTolerance = 0.05;
+
 int maxTimer = 200;
 
 bool enableAimbot = true;
+bool useRightClick = true;
 bool holdToUseAimbot = false;
 bool headShots = true;
 bool targetClosestToCrosshair = true;
@@ -40,19 +42,22 @@ DWORD WINAPI Thread(LPVOID param)
 
 	Player* aimbotTargetPlayer = nullptr;
 
-	int timer = 0;
+	int aimbotTimer = 0;
 	bool aimbot = false;
 	while (!GetAsyncKeyState(VK_INSERT)) // exit when ins key is pressed
 	{
-		inMatch = *(bool*)(clientDll + inMatchOffset);
-		if (!inMatch) { continue; }
-		
-		timer++;
-
 		if (GetAsyncKeyState(VK_F1) & 1)
 		{
 			hideMenu = !hideMenu;
 		}
+		
+		DWORD aimbotKey = VK_LSHIFT;
+		if (useRightClick) { aimbotKey = VK_RBUTTON; }
+		
+		inMatch = *(bool*)(clientDll + inMatchOffset);
+		if (!inMatch) { continue; }
+
+		aimbotTimer++;
 
 		if (!isCursorInWindow || !enableAimbot) { aimbot = false; continue; }
 
@@ -62,24 +67,23 @@ DWORD WINAPI Thread(LPVOID param)
 
 		if (!IsValidPlayer(localPlayer)) { continue; }
 
-		if ((GetAsyncKeyState(VK_LSHIFT) & 1))
+		if (GetAsyncKeyState(aimbotKey) & 1)
 		{
 			aimbot = !aimbot;
 
 			if (aimbot) { aimbotTargetPlayer = GetClosestPlayer(); }
+			else { aimbotTargetPlayer = nullptr; }
 		}
 
-		float zoomModifier = localPlayer->zoom;
-		if (localPlayer->zoom < 0.2) { zoomModifier = 0.1; }
-
-		if ((!holdToUseAimbot || (holdToUseAimbot && GetAsyncKeyState(VK_LSHIFT))) && aimbot && timer > maxTimer * zoomModifier)
+		if ((!holdToUseAimbot || (holdToUseAimbot && GetAsyncKeyState(aimbotKey))) && aimbot && aimbotTimer > maxTimer * localPlayer->zoom)
 		{
-			timer = 0;
-			
+			aimbotTimer = 0;
+
 			if (!CanAimbotPlayer(aimbotTargetPlayer))
-			{ 
+			{
 				aimbot = false;
-				continue; 
+				aimbotTargetPlayer = nullptr;
+				continue;
 			}
 
 			Aimbot(aimbotTargetPlayer);
@@ -105,11 +109,11 @@ DWORD WINAPI Thread(LPVOID param)
 
 BOOL WINAPI DllMain(HINSTANCE hModule, DWORD  dwReason, LPVOID lpReserved)
 {
-	if (dwReason == DLL_PROCESS_ATTACH) 
-	{ 
-		CreateThread(0, 0, Thread, hModule, 0, 0); 
+	if (dwReason == DLL_PROCESS_ATTACH)
+	{
+		CreateThread(0, 0, Thread, hModule, 0, 0);
 	}
-	
+
 	return TRUE;
 }
 
@@ -119,8 +123,8 @@ void Draw() // called in DetourPresent()
 	screenHeight = io.DisplaySize.y;
 	screenWidth = io.DisplaySize.x;
 	isCursorInWindow = IsCursorInWindow();
-	
-	if (!hideMenu) 
+
+	if (!hideMenu)
 	{
 		ImU32 primaryTeamColor;
 		ImU32 secondaryTeamColor;
@@ -154,17 +158,19 @@ void Draw() // called in DetourPresent()
 
 		ImGui::Begin("CS2 Jesso Cheats", nullptr, ImGuiWindowFlags_NoMove);
 		ImGui::SetWindowPos(ImVec2(0, 0));
-		ImGui::SetWindowSize(ImVec2(400, 315), ImGuiCond_Always);
+		ImGui::SetWindowSize(ImVec2(400, 335), ImGuiCond_Always);
 
 		ImGui::Text("Ins - uninject");
 		ImGui::Text("F1 - hide this menu");
-		ImGui::Text("Left Shift - use aimbot");
+		if (useRightClick) { ImGui::Text("Right click - use aimbot"); }
+		else { ImGui::Text("Left Shift - use aimbot"); }
 
 		ImGui::Checkbox("Enable aimbot", &enableAimbot);
+		ImGui::Checkbox("Right click to aimbot", &useRightClick);
 		ImGui::Checkbox("Hold to use aimbot", &holdToUseAimbot);
 		ImGui::Checkbox("Aim for heads", &headShots);
 		ImGui::Checkbox("Target player closest to crosshair", &targetClosestToCrosshair);
-		ImGui::SliderFloat("Aimbot strength", &aimbotStrength, 0.1, 5);
+		ImGui::SliderFloat("Aimbot strength", &aimbotStrength, 0.01, 5);
 
 		ImGui::Checkbox("ESP", &esp);
 		ImGui::Checkbox("Show player names", &showPlayerNames);
@@ -178,10 +184,10 @@ void Draw() // called in DetourPresent()
 		ImGui::PopStyleColor(8);
 	}
 
-	if(esp)
+	if (esp)
 	{
 		if (!inMatch || !IsValidPlayer(localPlayer)) { return; }
-		
+
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 		ImGui::PushStyleColor(ImGuiCol_WindowBg, { 0.0f, 0.0f, 0.0f, 0.0f });
@@ -225,7 +231,7 @@ bool IsCursorInWindow()
 	return true;
 }
 
-uintptr_t GetPlayerController(int index) 
+uintptr_t GetPlayerController(int index)
 {
 	if (index < 0 || index >= maxPlayerCount) { return 0; }
 
@@ -257,7 +263,7 @@ Player* GetPlayer(int index)
 	uintptr_t* entitySystemPtr = (uintptr_t*)(clientDll + entityListOffset);
 	if (entitySystemPtr == nullptr || (*entitySystemPtr) == 0) { return 0; }
 	uintptr_t entitySystem = *entitySystemPtr;
-	
+
 	uintptr_t* listEntityPtr = (uintptr_t*)(entitySystem + (0x8 * ((pawnHandle & 0x7FFF) >> 9) + 0x10));
 	if (listEntityPtr == nullptr || (*listEntityPtr) == 0) { return nullptr; }
 	uintptr_t listEntity = *listEntityPtr;
@@ -295,24 +301,26 @@ void PredictPosition(Player* targetPlayer, Vector3& out)
 
 	Vector3 velocity = targetPlayer->velocity - localPlayer->velocity;
 
-	float devisor = 35 * localPlayer->zoom;
-	if (devisor == 0) { return; }
-	if (devisor < 15) { devisor = 15; }
-
-	out.x += velocity.x / devisor;
-	out.y += velocity.y / devisor;
-	out.z += velocity.z / devisor;
+	out.x += velocity.x / 30;
+	out.y += velocity.y / 30;
+	out.z += velocity.z / 30;
 }
 
-Vector2 GetPlayerScreenPos(Player* player)
+Vector2 GetPlayerScreenPos(Player* player, bool getHeadPos)
 {
 	Vector2 result = {};
-	
+
 	Vector3 localPlayerPos = localPlayer->pos;
 	localPlayerPos.z += localPlayer->headHeight - maxHeadHeight;
 
 	Vector3 targetPlayerPos = player->pos;
-	targetPlayerPos.z += player->headHeight - maxHeadHeight + 8;
+	if (getHeadPos) 
+	{
+		targetPlayerPos.z += player->headHeight - maxHeadHeight + 2;
+		targetPlayerPos.x += player->rotX * 6;
+		targetPlayerPos.y += player->rotY * 4;
+	}
+	else { targetPlayerPos.z -= 5; }
 
 	PredictPosition(player, targetPlayerPos);
 
@@ -362,20 +370,17 @@ Player* GetClosestPlayer()
 		Player* player = GetPlayer(i);
 		if (!CanAimbotPlayer(player)) { continue; }
 
-		float distance;
+		Vector3 diffWorld = localPlayer->pos - player->pos;
+		float distance = sqrt((diffWorld.x * diffWorld.x) + (diffWorld.y * diffWorld.y) + (diffWorld.z * diffWorld.z));
+
 		if (targetClosestToCrosshair)
 		{
 			Vector2 crosshair = { screenWidth / 2, screenHeight / 2 };
-			Vector2 diff = crosshair - GetPlayerScreenPos(player);
-			distance = sqrt((diff.x * diff.x) + (diff.y * diff.y));
-		}
-		else 
-		{
-			Vector3 diff = localPlayer->pos - player->pos;
-			distance = sqrt((diff.x * diff.x) + (diff.y * diff.y) + (diff.z * diff.z));
+			Vector2 diffScreen = crosshair - GetPlayerScreenPos(player, true);
+			distance = sqrt((diffScreen.x * diffScreen.x) + (diffScreen.y * diffScreen.y));
 		}
 
-		if (distance < minDistance) 
+		if (distance < minDistance)
 		{
 			minDistance = distance;
 			targetPlayer = player;
@@ -385,7 +390,7 @@ Player* GetClosestPlayer()
 	return targetPlayer;
 }
 
-void MoveViewAngles(float targetPitch, float targetYaw)
+void MoveViewAngles(float targetPitch, float targetYaw, float speed, bool useTolerance)
 {
 	INPUT input;
 	input.type = INPUT_MOUSE;
@@ -398,16 +403,19 @@ void MoveViewAngles(float targetPitch, float targetYaw)
 	if (deltaYaw > 180) { deltaYaw = -(360 - deltaYaw); }
 	if (deltaYaw < -180) { deltaYaw = (360 + deltaYaw); }
 
-	float deltaY = deltaPitch * aimbotStrength;
-	float deltaX = deltaYaw * aimbotStrength;
+	float deltaY = deltaPitch * speed;
+	float deltaX = deltaYaw * speed;
 
 	if (deltaY > 0 && deltaY < 1) { deltaY = 1; }
 	if (deltaY < 0 && deltaY > -1) { deltaY = -1; }
 	if (deltaX > 0 && deltaX < 1) { deltaX = 1; }
 	if (deltaX < 0 && deltaX > -1) { deltaX = -1; }
 
-	if (deltaPitch > -aimbotTolerance && deltaPitch < aimbotTolerance) { deltaY = 0; }
-	if (deltaYaw > -aimbotTolerance && deltaYaw < aimbotTolerance) { deltaX = 0; }
+	if (useTolerance) 
+	{
+		if (deltaPitch > -moveViewAnglesTolerance && deltaPitch < moveViewAnglesTolerance) { deltaY = 0; }
+		if (deltaYaw > -moveViewAnglesTolerance && deltaYaw < moveViewAnglesTolerance) { deltaX = 0; }
+	}
 
 	mouseInput.dy = deltaY;
 	mouseInput.dx = deltaX;
@@ -422,8 +430,8 @@ void Aimbot(Player* targetPlayer)
 	localPlayerPos.z += localPlayer->headHeight - maxHeadHeight;
 
 	Vector3 targetPlayerPos = targetPlayer->pos;
-	targetPlayerPos.z += targetPlayer->headHeight - (headShots ? maxHeadHeight : 90);
-	if (headShots) 
+	targetPlayerPos.z += targetPlayer->headHeight - (headShots ? maxHeadHeight - 1 : 90);
+	if (headShots)
 	{
 		targetPlayerPos.x += targetPlayer->rotX * 4;
 		targetPlayerPos.y += targetPlayer->rotY * 4;
@@ -438,7 +446,7 @@ void Aimbot(Player* targetPlayer)
 	float pitch = -(asin((targetPlayerPos.z - localPlayerPos.z) / distance) * rToD);
 	float yaw = (atan2(targetPlayerPos.y - localPlayerPos.y, targetPlayerPos.x - localPlayerPos.x) * rToD);
 
-	MoveViewAngles(pitch, yaw);
+	MoveViewAngles(pitch + localPlayer->shotsFired, yaw, aimbotStrength, true);
 }
 
 void ESP(ImDrawList* drawList)
@@ -450,8 +458,9 @@ void ESP(ImDrawList* drawList)
 		Player* player = GetPlayer(i);
 
 		if (!IsValidPlayer(player) || player == localPlayer || (!targetSameTeam && player->team == localPlayer->team)) { continue; }
-		
-		Vector2 screenPos = GetPlayerScreenPos(player);
+
+		Vector2 screenBodyPos = GetPlayerScreenPos(player, false);
+		Vector2 screenHeadPos = GetPlayerScreenPos(player, true);
 
 		Vector3 diff = localPlayer->pos - player->pos;
 		float distance = sqrt((diff.x * diff.x) + (diff.y * diff.y) + (diff.z * diff.z));
@@ -459,9 +468,10 @@ void ESP(ImDrawList* drawList)
 
 		float depth = (distance * 0.01 * localPlayer->zoom);
 		float sizeX = (screenWidth * 0.05) / depth;
-		float sizeY = ((screenHeight * 0.4) + player->headHeight) / depth;
+		float sizeY = ((screenHeight * 0.375) + player->headHeight) / depth;
+		float headRadius = 50 / depth;
 
-		if ((screenPos.y < -sizeY || screenPos.y > screenHeight) || (screenPos.x < -sizeX || screenPos.x > screenWidth)) { continue; }
+		if ((screenBodyPos.y < -sizeY || screenBodyPos.y > screenHeight) || (screenBodyPos.x < -sizeX || screenBodyPos.x > screenWidth)) { continue; }
 
 		ImU32 color;
 		if (player->health > 80) { color = IM_COL32(0, 255, 0, 255); }
@@ -471,18 +481,20 @@ void ESP(ImDrawList* drawList)
 		if (!hideEspInfo)
 		{
 			std::string healthStr = "Health: " + std::to_string(player->health);
-			drawList->AddText(ImVec2(screenPos.x - sizeX, screenPos.y - 35), color, healthStr.c_str());
+			drawList->AddText(ImVec2(screenBodyPos.x - sizeX, screenHeadPos.y - 35 - headRadius), color, healthStr.c_str());
 
 			std::string distStr = "Distance: " + std::to_string((int)distance);
-			drawList->AddText(ImVec2(screenPos.x - sizeX, screenPos.y - 25), color, distStr.c_str());
+			drawList->AddText(ImVec2(screenBodyPos.x - sizeX, screenHeadPos.y - 25 - headRadius), color, distStr.c_str());
 		}
 
-		if (showPlayerNames) 
+		if (showPlayerNames)
 		{
 			const char* playerName = (const char*)(GetPlayerController(i) + playerNameOffset);
-			drawList->AddText(ImVec2(screenPos.x - sizeX, screenPos.y - 15), color, playerName);
+			drawList->AddText(ImVec2(screenBodyPos.x - sizeX, screenHeadPos.y - 15 - headRadius), color, playerName);
 		}
 
-		drawList->AddRect(ImVec2(screenPos.x - sizeX, screenPos.y), ImVec2(screenPos.x + sizeX, screenPos.y + sizeY), color);
+		drawList->AddCircle(ImVec2(screenHeadPos.x, screenHeadPos.y), headRadius, color);
+
+		drawList->AddRect(ImVec2(screenBodyPos.x - sizeX, screenBodyPos.y), ImVec2(screenBodyPos.x + sizeX, screenBodyPos.y + sizeY), color);
 	}
 }

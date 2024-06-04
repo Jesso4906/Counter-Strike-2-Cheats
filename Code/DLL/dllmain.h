@@ -16,11 +16,11 @@ bool CanAimbotPlayer(Player* player);
 
 void PredictPosition(Player* targetPlayer, Vector3& out);
 
-Vector2 GetPlayerScreenPos(Player* player);
+Vector2 GetPlayerScreenPos(Player* player, bool getHeadPos);
 
 Player* GetClosestPlayer();
 
-void MoveViewAngles(float targetPitch, float targetYaw, float tolerance);
+void MoveViewAngles(float targetPitch, float targetYaw, float speed, bool useTolerance);
 
 void Aimbot(Player* targetPlayer);
 

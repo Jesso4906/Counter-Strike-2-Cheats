@@ -20,6 +20,7 @@ const unsigned int zoomOffset = 0x126C;
 const unsigned int posOffset = 0x1274;
 const unsigned int rotXOffset = 0x12E0;
 const unsigned int rotYOffset = 0x12E4;
+const unsigned int shotsFiredOffset = 0x22A4;
 
 const float maxHeadHeight = 64;
 
@@ -56,4 +57,7 @@ struct Player
 	char pad8[rotXOffset - posOffset - sizeof(pos)];
 	float rotX;
 	float rotY;
+
+	char pad10[shotsFiredOffset - rotYOffset - sizeof(rotY)];
+	int shotsFired;
 };
