@@ -1,14 +1,14 @@
 #pragma once
 #include "mathstructs.h"
 
-const uintptr_t inMatchOffset = 0x17ABCA8; // offset from client.dll
+const uintptr_t inMatchOffset = 0x17DCB70; // offset from client.dll
 
-const uintptr_t entityListOffset = 0x19A63A0; // offset from client.dll
+const uintptr_t entityListOffset = 0x195C460; // offset from client.dll
 const unsigned int playerNameOffset = 0x630;
 const unsigned int pawnHandleOffset = 0x7DC;
 const int maxPlayerCount = 64;
 
-const uintptr_t localPlayerOffset = 0x1810FA8; // offset from client.dll
+const uintptr_t localPlayerOffset = 0x17C9468; // offset from client.dll
 
 const unsigned int healthOffset = 0x324;
 const unsigned int velocityOffset = 0x3D0;

@@ -372,6 +372,11 @@ Player* GetClosestPlayer()
 
 		Vector3 diffWorld = localPlayer->pos - player->pos;
 		float distance = sqrt((diffWorld.x * diffWorld.x) + (diffWorld.y * diffWorld.y) + (diffWorld.z * diffWorld.z));
+		if (distance < 250) 
+		{
+			targetPlayer = player;
+			break;
+		}
 
 		if (targetClosestToCrosshair)
 		{
