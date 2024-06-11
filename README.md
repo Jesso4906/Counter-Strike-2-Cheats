@@ -5,3 +5,5 @@ The dll is manually mapped into the game, and it features a simple aimbot and es
 It should be injected while in a match.
 
 Menu made with ImGui: https://github.com/ocornut/imgui
+
+![alt text](https://github.com/Jesso4906/Counter-Strike-2-Cheats/blob/main/screenshot.png)
