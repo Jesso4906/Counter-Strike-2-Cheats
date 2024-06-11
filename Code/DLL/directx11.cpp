@@ -3,7 +3,7 @@
 
 Present presentGateway;
 Present present;
-BYTE* overwrittenBytes;
+BYTE overwrittenBytes[5];
 
 bool HookPresent()
 {
@@ -38,7 +38,6 @@ bool HookPresent()
 		if (present == 0) { return false; }
 	}
 
-	overwrittenBytes = new BYTE[5];
 	memcpy(overwrittenBytes, (void*)present, 5);
 
 	presentGateway = (Present)TrampolineHook((void*)present, (void*)DetourPresent, 5, true); // DetourPresent has the same signature as Present so it can just be jumped to
@@ -51,7 +50,6 @@ bool HookPresent()
 void UnhookPresent()
 {
 	SetBytes((void*)present, overwrittenBytes, 5);
-	delete[] overwrittenBytes;
 }
 
 WNDPROC oWndProc = NULL;

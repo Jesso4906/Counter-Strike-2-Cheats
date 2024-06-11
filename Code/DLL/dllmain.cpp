@@ -21,7 +21,7 @@ bool useRightClick = true;
 bool holdToUseAimbot = false;
 bool headShots = true;
 bool targetClosestToCrosshair = true;
-float aimbotStrength = 5;
+float aimbotStrength = 10;
 
 bool esp = false;
 bool showPlayerNames = true;
@@ -156,7 +156,7 @@ void Draw() // called in DetourPresent()
 		ImGui::PushStyleColor(ImGuiCol_FrameBg, secondaryTeamColor);
 		ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, secondaryTeamColor);
 
-		ImGui::Begin("CS2 Jesso Cheats", nullptr, ImGuiWindowFlags_NoMove);
+		ImGui::Begin("CS2 Jesso Cheats", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
 		ImGui::SetWindowPos(ImVec2(0, 0));
 		ImGui::SetWindowSize(ImVec2(400, 335), ImGuiCond_Always);
 
@@ -170,7 +170,7 @@ void Draw() // called in DetourPresent()
 		ImGui::Checkbox("Hold to use aimbot", &holdToUseAimbot);
 		ImGui::Checkbox("Aim for heads", &headShots);
 		ImGui::Checkbox("Target player closest to crosshair", &targetClosestToCrosshair);
-		ImGui::SliderFloat("Aimbot strength", &aimbotStrength, 0.01, 5);
+		ImGui::SliderFloat("Aimbot strength", &aimbotStrength, 0.01, 10);
 
 		ImGui::Checkbox("ESP", &esp);
 		ImGui::Checkbox("Show player names", &showPlayerNames);
@@ -372,11 +372,6 @@ Player* GetClosestPlayer()
 
 		Vector3 diffWorld = localPlayer->pos - player->pos;
 		float distance = sqrt((diffWorld.x * diffWorld.x) + (diffWorld.y * diffWorld.y) + (diffWorld.z * diffWorld.z));
-		if (distance < 250) 
-		{
-			targetPlayer = player;
-			break;
-		}
 
 		if (targetClosestToCrosshair)
 		{
