@@ -1,10 +1,13 @@
 #include "dllmain.h"
 
 uintptr_t clientDll = 0;
+uintptr_t engine2Dll = 0;
 
 bool inMatch = false;
 
 Player* localPlayer = nullptr;
+float localPlayerPitch = 0;
+float localPlayerYaw = 0;
 
 int screenHeight = 0;
 int screenWidth = 0;
@@ -33,8 +36,9 @@ bool targetSameTeam = false;
 DWORD WINAPI Thread(LPVOID param)
 {
 	clientDll = (uintptr_t)GetModuleHandle(L"client.dll");
+	engine2Dll = (uintptr_t)GetModuleHandle(L"engine2.dll");
 
-	if (clientDll == 0 || !HookPresent()) // hooking directx
+	if (clientDll == 0 || engine2Dll == 0 || !HookPresent()) // hooking directx
 	{
 		FreeLibraryAndExitThread((HMODULE)param, 0);
 		return 0;
@@ -64,6 +68,9 @@ DWORD WINAPI Thread(LPVOID param)
 		Player** localPlayerPtr = (Player**)(clientDll + localPlayerOffset);
 		if (localPlayerPtr == nullptr) { localPlayer = nullptr; continue; }
 		localPlayer = *localPlayerPtr;
+
+		localPlayerPitch = *(float*)(engine2Dll + localPlayerViewAnglesOffset);
+		localPlayerYaw = *(float*)(engine2Dll + localPlayerViewAnglesOffset + sizeof(float));
 
 		if (!IsValidPlayer(localPlayer)) { continue; }
 
@@ -170,7 +177,7 @@ void Draw() // called in DetourPresent()
 		ImGui::Checkbox("Hold to use aimbot", &holdToUseAimbot);
 		ImGui::Checkbox("Aim for heads", &headShots);
 		ImGui::Checkbox("Target player closest to crosshair", &targetClosestToCrosshair);
-		ImGui::SliderFloat("Aimbot strength", &aimbotStrength, 0.01, 10);
+		ImGui::SliderFloat("Aimbot strength", &aimbotStrength, 0.01, 10, "%.2f");
 
 		ImGui::Checkbox("ESP", &esp);
 		ImGui::Checkbox("Show player names", &showPlayerNames);
@@ -299,7 +306,7 @@ void PredictPosition(Player* targetPlayer, Vector3& out)
 {
 	if (!IsValidPlayer(localPlayer) || !IsValidPlayer(targetPlayer)) { return; }
 
-	Vector3 velocity = targetPlayer->velocity - localPlayer->velocity;
+	Vector3 velocity = targetPlayer->velocity - (localPlayer->velocity * 2);
 
 	out.x += velocity.x / 30;
 	out.y += velocity.y / 30;
@@ -331,8 +338,8 @@ Vector2 GetPlayerScreenPos(Player* player, bool getHeadPos)
 	float pitchToPlayer = -(asin((targetPlayerPos.z - localPlayerPos.z) / distance) * rToD);
 	float yawToPlayer = (atan2(targetPlayerPos.y - localPlayerPos.y, targetPlayerPos.x - localPlayerPos.x) * rToD);
 
-	float relativePitch = pitchToPlayer - localPlayer->pitch;
-	float relativeYaw = localPlayer->yaw - yawToPlayer;
+	float relativePitch = pitchToPlayer - localPlayerPitch;
+	float relativeYaw = localPlayerYaw - yawToPlayer;
 
 	if (relativeYaw > 180) { relativeYaw = -(360 - relativeYaw); }
 	if (relativeYaw < -180) { relativeYaw = (360 + relativeYaw); }
@@ -397,8 +404,8 @@ void MoveViewAngles(float targetPitch, float targetYaw, float speed, bool useTol
 	MOUSEINPUT mouseInput;
 	mouseInput.dwFlags = MOUSEEVENTF_MOVE;
 
-	float deltaPitch = targetPitch - localPlayer->pitch;
-	float deltaYaw = localPlayer->yaw - targetYaw;
+	float deltaPitch = targetPitch - localPlayerPitch;
+	float deltaYaw = localPlayerYaw - targetYaw;
 
 	if (deltaYaw > 180) { deltaYaw = -(360 - deltaYaw); }
 	if (deltaYaw < -180) { deltaYaw = (360 + deltaYaw); }
@@ -469,7 +476,7 @@ void ESP(ImDrawList* drawList)
 		float depth = (distance * 0.01 * localPlayer->zoom);
 		float sizeX = (screenWidth * 0.05) / depth;
 		float sizeY = ((screenHeight * 0.375) + player->headHeight) / depth;
-		float headRadius = 50 / depth;
+		float headRadius = 30 / depth;
 
 		if ((screenBodyPos.y < -sizeY || screenBodyPos.y > screenHeight) || (screenBodyPos.x < -sizeX || screenBodyPos.x > screenWidth)) { continue; }
 
