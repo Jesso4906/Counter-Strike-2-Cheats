@@ -6,8 +6,6 @@ uintptr_t engine2Dll = 0;
 bool inMatch = false;
 
 Player* localPlayer = nullptr;
-float localPlayerPitch = 0;
-float localPlayerYaw = 0;
 
 int screenHeight = 0;
 int screenWidth = 0;
@@ -17,7 +15,7 @@ bool hideMenu = false;
 
 float moveViewAnglesTolerance = 0.05;
 
-int maxTimer = 200;
+int maxAimbotTimer = 500; // controls how smooth it is
 
 bool enableAimbot = true;
 bool useRightClick = true;
@@ -54,10 +52,10 @@ DWORD WINAPI Thread(LPVOID param)
 		{
 			hideMenu = !hideMenu;
 		}
-		
+
 		DWORD aimbotKey = VK_LSHIFT;
 		if (useRightClick) { aimbotKey = VK_RBUTTON; }
-		
+
 		inMatch = *(bool*)(clientDll + inMatchOffset);
 		if (!inMatch) { continue; }
 
@@ -69,9 +67,6 @@ DWORD WINAPI Thread(LPVOID param)
 		if (localPlayerPtr == nullptr) { localPlayer = nullptr; continue; }
 		localPlayer = *localPlayerPtr;
 
-		localPlayerPitch = *(float*)(engine2Dll + localPlayerViewAnglesOffset);
-		localPlayerYaw = *(float*)(engine2Dll + localPlayerViewAnglesOffset + sizeof(float));
-
 		if (!IsValidPlayer(localPlayer)) { continue; }
 
 		if (GetAsyncKeyState(aimbotKey) & 1)
@@ -82,7 +77,7 @@ DWORD WINAPI Thread(LPVOID param)
 			else { aimbotTargetPlayer = nullptr; }
 		}
 
-		if ((!holdToUseAimbot || (holdToUseAimbot && GetAsyncKeyState(aimbotKey))) && aimbot && aimbotTimer > maxTimer * localPlayer->zoom)
+		if ((!holdToUseAimbot || (holdToUseAimbot && GetAsyncKeyState(aimbotKey))) && aimbot && aimbotTimer > maxAimbotTimer * localPlayer->zoom)
 		{
 			aimbotTimer = 0;
 
@@ -321,7 +316,7 @@ Vector2 GetPlayerScreenPos(Player* player, bool getHeadPos)
 	localPlayerPos.z += localPlayer->headHeight - maxHeadHeight;
 
 	Vector3 targetPlayerPos = player->pos;
-	if (getHeadPos) 
+	if (getHeadPos)
 	{
 		targetPlayerPos.z += player->headHeight - maxHeadHeight + 2;
 		targetPlayerPos.x += player->rotX * 6;
@@ -337,6 +332,9 @@ Vector2 GetPlayerScreenPos(Player* player, bool getHeadPos)
 
 	float pitchToPlayer = -(asin((targetPlayerPos.z - localPlayerPos.z) / distance) * rToD);
 	float yawToPlayer = (atan2(targetPlayerPos.y - localPlayerPos.y, targetPlayerPos.x - localPlayerPos.x) * rToD);
+
+	float localPlayerPitch = *(float*)(engine2Dll + localPlayerViewAnglesOffset);
+	float localPlayerYaw = *(float*)(engine2Dll + localPlayerViewAnglesOffset + sizeof(float));
 
 	float relativePitch = pitchToPlayer - localPlayerPitch;
 	float relativeYaw = localPlayerYaw - yawToPlayer;
@@ -404,6 +402,9 @@ void MoveViewAngles(float targetPitch, float targetYaw, float speed, bool useTol
 	MOUSEINPUT mouseInput;
 	mouseInput.dwFlags = MOUSEEVENTF_MOVE;
 
+	float localPlayerPitch = *(float*)(engine2Dll + localPlayerViewAnglesOffset);
+	float localPlayerYaw = *(float*)(engine2Dll + localPlayerViewAnglesOffset + sizeof(float));
+
 	float deltaPitch = targetPitch - localPlayerPitch;
 	float deltaYaw = localPlayerYaw - targetYaw;
 
@@ -418,7 +419,7 @@ void MoveViewAngles(float targetPitch, float targetYaw, float speed, bool useTol
 	if (deltaX > 0 && deltaX < 1) { deltaX = 1; }
 	if (deltaX < 0 && deltaX > -1) { deltaX = -1; }
 
-	if (useTolerance) 
+	if (useTolerance)
 	{
 		if (deltaPitch > -moveViewAnglesTolerance && deltaPitch < moveViewAnglesTolerance) { deltaY = 0; }
 		if (deltaYaw > -moveViewAnglesTolerance && deltaYaw < moveViewAnglesTolerance) { deltaX = 0; }
