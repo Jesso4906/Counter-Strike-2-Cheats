@@ -1,10 +1,10 @@
 #pragma once
 #include "mathstructs.h"
 
-const uintptr_t inMatchOffset = 0x1774b58; // offset from client.dll; accessed at \xC6\x46\x64\x00\x39\x5E\x28 + 0x4
-const uintptr_t entityListOffset = 0x19B49B8; // offset from client.dll; accessed at \x48\x81\xEC\x20\x01\x00\x00\x0F\x29\x70\xB8 + 0x37
-const uintptr_t localPlayerOffset = 0x181A998; // offset from client.dll; accessed at \x48\x39\xBE\x48\x01\x00\x00
-const uintptr_t localPlayerViewAnglesOffset = 0x5ECC48; // offset from engine2.dll; accessed at \xF2\x0F\x10\x00\xF2\x0F\x11\x46\x0C + 0x4
+const uintptr_t inMatchOffset = 0x1774B58; // offset from client.dll; accessed in client.dll at \xC6\x46\x64\x00\x39\x5E\x28 + 0x4
+const uintptr_t entityListOffset = 0x19B49B8; // offset from client.dll; accessed in client.dll at \x48\x81\xEC\x20\x01\x00\x00\x0F\x29\x70\xB8 + 0x37
+const uintptr_t localPlayerOffset = 0x181A9B8; // offset from client.dll; accessed in client.dll at \x48\x39\xBE\x48\x01\x00\x00
+const uintptr_t localPlayerViewAnglesOffset = 0x5ECC48; // offset from engine2.dll; accessed in client.dll at \xF2\x0F\x10\x00\xF2\x0F\x11\x46\x0C + 0x4
 
 const unsigned int playerNameOffset = 0x630;
 const unsigned int pawnHandleOffset = 0x7DC;
