@@ -1,10 +1,9 @@
 # Counter-Strike-2-Cheats
 Internal cheats for CS2.
 
-The dll is manually mapped into the game, and it features a simple aimbot and esp.
-It should be injected while in a match.
+The dll is manually mapped into the game, and the cheats include an aimbot and esp.
 
-Offsets are only valid for the 6/20/2024 game update.
+The current version of the cheats will likely only work with the 2/6/2025 game version due to the offsets changing.
 
 Menu made with ImGui: https://github.com/ocornut/imgui
 
