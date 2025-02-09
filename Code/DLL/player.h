@@ -1,26 +1,26 @@
 #pragma once
 #include "mathstructs.h"
 
-const uintptr_t inMatchOffset = 0x1774B58; // offset from client.dll; accessed in client.dll at \xC6\x46\x64\x00\x39\x5E\x28 + 0x4
-const uintptr_t entityListOffset = 0x19B49B8; // offset from client.dll; accessed in client.dll at \x48\x81\xEC\x20\x01\x00\x00\x0F\x29\x70\xB8 + 0x37
-const uintptr_t localPlayerOffset = 0x181A9B8; // offset from client.dll; accessed in client.dll at \x48\x39\xBE\x48\x01\x00\x00
-const uintptr_t localPlayerViewAnglesOffset = 0x5ECC48; // offset from engine2.dll; accessed in client.dll at \xF2\x0F\x10\x00\xF2\x0F\x11\x46\x0C + 0x4
+// offsets valid for the February 6th, 2025 game update
+const uintptr_t inMatchOffset = 0x17DF8E8; // offset from client.dll; accessed in client.dll at \xC6\x46\x64\x00\x39\x5E\x28 + 0x4
+const uintptr_t entityListOffset = 0x1B5C6D8;
+const uintptr_t localPlayerOffset = 0x1889F30; // offset from client.dll; accessed in client.dll at \x48\x39\xBE\x80\x01\x00\x00
+const uintptr_t localPlayerViewAnglesOffset = 0x547378; // offset from engine2.dll; accessed in client.dll at \xF2\x0F\x10\x00\xF2\x0F\x11\x46\x0C + 0x4
 
-const unsigned int playerNameOffset = 0x630;
-const unsigned int pawnHandleOffset = 0x7DC;
+const unsigned int playerNameOffset = 0x660;
+const unsigned int pawnHandleOffset = 0x80C;
 const int maxPlayerCount = 64;
 
-const unsigned int healthOffset = 0x324;
-const unsigned int velocityOffset = 0x3D0;
-const unsigned int headHeightOffset = 0xC58;
-const unsigned int teamOffset = 0xDC8;
-const unsigned int zoomOffset = 0x126C;
-const unsigned int posOffset = 0x1274;
-const unsigned int rotXOffset = 0x12E0;
-const unsigned int rotYOffset = 0x12E4;
-const unsigned int shotsFiredOffset = 0x22A4;
+const unsigned int healthOffset = 0x344;
+const unsigned int velocityOffset = 0x3F0;
+const unsigned int headHeightOffset = 0xBA4;
+const unsigned int teamOffset = 0xE68;
+const unsigned int zoomOffset = 0x131C;
+const unsigned int posOffset = 0x1324;
+const unsigned int rotXOffset = 0x1394;
+const unsigned int rotYOffset = 0x1398;
 
-const float maxHeadHeight = 64;
+const float maxHeadHeight = 72;
 
 enum Team
 {
@@ -51,7 +51,4 @@ struct Player
 	char pad7[rotXOffset - posOffset - sizeof(pos)];
 	float rotX;
 	float rotY;
-
-	char pad8[shotsFiredOffset - rotYOffset - sizeof(rotY)];
-	int shotsFired;
 };

@@ -171,7 +171,8 @@ void Draw() // called in DetourPresent()
 		ImGui::Checkbox("Right click to aimbot", &useRightClick);
 		ImGui::Checkbox("Hold to use aimbot", &holdToUseAimbot);
 		ImGui::Checkbox("Aim for heads", &headShots);
-		ImGui::Checkbox("Target player closest to crosshair", &targetClosestToCrosshair);
+		if (targetClosestToCrosshair) { ImGui::Checkbox("Target player closest to crosshair", &targetClosestToCrosshair); }
+		else { ImGui::Checkbox("Target player closest to you", &targetClosestToCrosshair); }
 		ImGui::SliderFloat("Aimbot strength", &aimbotStrength, 0.01, 10, "%.2f");
 
 		ImGui::Checkbox("ESP", &esp);
@@ -319,10 +320,10 @@ Vector2 GetPlayerScreenPos(Player* player, bool getHeadPos)
 	if (getHeadPos)
 	{
 		targetPlayerPos.z += player->headHeight - maxHeadHeight + 2;
-		targetPlayerPos.x += player->rotX * 6;
+		targetPlayerPos.x += player->rotX * 10;
 		targetPlayerPos.y += player->rotY * 4;
 	}
-	else { targetPlayerPos.z -= 5; }
+	else { targetPlayerPos.z -= 4; }
 
 	PredictPosition(player, targetPlayerPos);
 
@@ -454,7 +455,7 @@ void Aimbot(Player* targetPlayer)
 	float pitch = -(asin((targetPlayerPos.z - localPlayerPos.z) / distance) * rToD);
 	float yaw = (atan2(targetPlayerPos.y - localPlayerPos.y, targetPlayerPos.x - localPlayerPos.x) * rToD);
 
-	MoveViewAngles(pitch + localPlayer->shotsFired, yaw, aimbotStrength, true);
+	MoveViewAngles(pitch, yaw, aimbotStrength, true);
 }
 
 void ESP(ImDrawList* drawList)
