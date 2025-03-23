@@ -1,5 +1,5 @@
 # Counter Strike 2 game mod
-This CS2 educational game mod is designed to improve the gameplay experience for all players in Counter Strike 2. It includes both aim assist and visual aids to assist players in their gameplay. 
+This game mod is designed to improve the gameplay experience for all players in Counter Strike 2 by making it more accessible. It includes both aim assist, and visual aids to assist players in their gameplay, allowing everyone to have fun playing CS2 and ensuring that no one is excluded.
 
 # Installation
 You can build it yourself with Microsoft Visual Studio, or use the precompiled binaries already in the build folder. 
